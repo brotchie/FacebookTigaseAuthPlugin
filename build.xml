@@ -1,0 +1,46 @@
+<project name="MyStyleChatTigaseAuthPlugin Build" basedir="." default="deploy">
+	<!-- Load properties -->
+	<!--<property file="build.properties"/>-->
+	
+	<!-- Load task definitions e.g. FTP -->
+	<path id="class.path">
+		<fileset dir="${lib.dir}" includes="*.jar"/>
+	</path>	
+	<!--<taskdef file="task.properties" classpathref="class.path"/>-->
+	
+	<!-- Set variables for build directories -->
+	<property name="build.dir" value="build"/>
+	<property name="src.dir" value="src"/>
+	<!-- set variable for external lib directory 
+	(typically set up as external project within project) -->
+	<property name="lib.dir" value="lib"/>
+	
+	<target name="-init" depends="clean">
+		<echo>Creating temporary folders...</echo>
+		<mkdir dir="${build.dir}"/>
+	</target>
+	
+	<target name="clean" description="Clean up">
+		<echo>Cleaning up...</echo>
+		<delete dir="${build.dir}"/>
+	</target>
+	
+	<target name="deploy" depends="jar">
+		<scp file="${build.dir}/MyStyleChatTigaseAuthPlugin.jar" todir="vagrant@localhost:" password="vagrant" port="2222" trust="true"/>
+	</target>
+	
+	<target name="build" depends="-init" description="Build project">
+        <javac srcdir="${src.dir}" destdir="${build.dir}">
+            <classpath>
+                <fileset dir="${lib.dir}">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+	</target>
+	
+	<target name="jar" depends="build" description="Create JAR">
+		<jar basedir="${build.dir}" destfile="${build.dir}/MyStyleChatTigaseAuthPlugin.jar"/>
+	</target>
+	
+</project>
