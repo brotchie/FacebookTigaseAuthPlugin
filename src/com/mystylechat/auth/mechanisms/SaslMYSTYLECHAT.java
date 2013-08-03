@@ -1,6 +1,7 @@
 package com.mystylechat.auth.mechanisms;
 
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.sasl.SaslException;
@@ -13,6 +14,9 @@ import com.mystylechat.auth.ValidateFacebookTokenCallback;
 
 public class SaslMYSTYLECHAT extends AbstractSasl {
 	private static final String MECHANISM = "MYSTYLECHAT";
+	private static final String STUB_FACEBOOK_AUTH_KEY = "stub-facebook-auth";
+	
+	private static final Logger log = Logger.getLogger(SaslMYSTYLECHAT.class.getName());
 	
 	public SaslMYSTYLECHAT(Map<? super String, ?> props, CallbackHandler handler) {
 		super(props, handler);
@@ -20,12 +24,21 @@ public class SaslMYSTYLECHAT extends AbstractSasl {
 	
 	@Override
 	public byte[] evaluateResponse(byte[] response) throws SaslException {
-		String[] data = split(response, "");
+		final String[] data = split(response, "");
 		if (data.length != 2)
 			throw new XmppSaslException(SaslError.malformed_request, "Invalid number of message parts");
 		
 		final String user_id = data[0];
 		final String auth_token = data[1];
+		
+		// Early exit if we're asked to stub Facebook auth validation.
+		final String stubFacebookAuth = (String)props.get(STUB_FACEBOOK_AUTH_KEY);
+		if (stubFacebookAuth != null && stubFacebookAuth.equals("true")) {
+			log.warning("Facebook: Stubbing Facebook Auth for " + user_id);
+			authorizedId = user_id;
+			complete = true;
+			return null;
+		}
 		
 		ValidateFacebookTokenCallback vfbtc = new ValidateFacebookTokenCallback(user_id, auth_token);
 		
