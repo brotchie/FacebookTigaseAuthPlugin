@@ -59,28 +59,32 @@ public class FriendsListRoster implements DynamicRosterIfc {
 					session.getJID().getLocalpart(),
 					URLEncoder.encode(facebookToken));
 			log.warning("Facebook getting url: " + url);
-			HttpGet get = new HttpGet(url);
-			
-			ResponseHandler<String> responseHandler = new BasicResponseHandler();
-			String responseBody;
+				HttpGet get = new HttpGet(url);
+				
+				ResponseHandler<String> responseHandler = new BasicResponseHandler();
+				String responseBody;
 			try {
-				responseBody = httpClient.execute(get, responseHandler);
-			} catch (IOException e) {
-				log.warning("Facebook " + e.toString());
-				return null;
+				try {
+					responseBody = httpClient.execute(get, responseHandler);
+				} catch (IOException e) {
+					log.warning("Facebook " + e.toString());
+					return null;
+				}
+	
+				Gson gson = new Gson();
+				JsonFriendList friendList = gson.fromJson(responseBody, JsonFriendList.class);
+				log.warning("Facebook friends " + friendList.data.size());
+				roster = new JID[friendList.data.size()];
+				int i = 0;
+				String domain = session.getJID().getDomain();
+				for (JsonFriend friend : friendList.data) {
+					roster[i] = JID.jidInstanceNS(friend.id, domain, null);
+					i++;
+				}
+				rosterCache.setRoster(session.getBareJID(), roster);
+			} finally {
+				get.releaseConnection();
 			}
-
-			Gson gson = new Gson();
-			JsonFriendList friendList = gson.fromJson(responseBody, JsonFriendList.class);
-			log.warning("Facebook friends " + friendList.data.size());
-			roster = new JID[friendList.data.size()];
-			int i = 0;
-			String domain = session.getJID().getDomain();
-			for (JsonFriend friend : friendList.data) {
-				roster[i] = JID.jidInstanceNS(friend.id, domain, null);
-				i++;
-			}
-			rosterCache.setRoster(session.getBareJID(), roster);
 		}
 		return roster;
 	}

@@ -54,14 +54,18 @@ public class MyStyleChatCallbackHandler implements CallbackHandler, SessionAware
 			if (FACEBOOK_APP_TOKEN == null) {
 				String url = MessageFormat.format("https://graph.facebook.com/oauth/access_token?client_id={0}&client_secret={1}&grant_type=client_credentials", FACEBOOK_API_ID, FACEBOOK_API_SECRET);
 				HttpGet get = new HttpGet(url);
-				
-				ResponseHandler<String> responseHandler = new BasicResponseHandler();
-				String responseBody = httpclient.execute(get, responseHandler);
-				
-				String[] parts = responseBody.split("=", 2);
-				if (parts.length == 2 && parts[0].equals("access_token")) {
-					FACEBOOK_APP_TOKEN = parts[1];
-					log.warning("Fetched Facebook app token: " + FACEBOOK_APP_TOKEN);
+			
+				try {
+					ResponseHandler<String> responseHandler = new BasicResponseHandler();
+					String responseBody = httpclient.execute(get, responseHandler);
+					
+					String[] parts = responseBody.split("=", 2);
+					if (parts.length == 2 && parts[0].equals("access_token")) {
+						FACEBOOK_APP_TOKEN = parts[1];
+						log.warning("Fetched Facebook app token: " + FACEBOOK_APP_TOKEN);
+					}
+				} finally {
+					get.releaseConnection();
 				}
 			}
 		}
@@ -78,32 +82,36 @@ public class MyStyleChatCallbackHandler implements CallbackHandler, SessionAware
 					URLEncoder.encode(callback.getAuthToken()),
 					URLEncoder.encode(appToken));
 			HttpGet get = new HttpGet(url);
-			
-			ResponseHandler<String> responseHandler = new BasicResponseHandler();
-			String responseBody = httpclient.execute(get, responseHandler);
-			
-			log.warning("Received Facebook JSON: " + responseBody);
-			
-			JsonElement element = new JsonParser().parse(responseBody);
-			if (element == null)
-				return;
-			
-			JsonObject object = element.getAsJsonObject();
-			if (object == null || !object.has("data"))
-				return;
-			
-			object = object.getAsJsonObject("data");
-			if (!object.has("user_id") || !object.has("is_valid"))
-				return;
-			
-			String user_id = object.get("user_id").getAsString();
-			boolean is_valid = object.get("is_valid").getAsBoolean();
-			log.warning("Facebook is_valid: " + is_valid + " " + user_id + " == " + callback.getUserId());
-			callback.setValid(is_valid && user_id.equals(callback.getUserId()));
-			
-			if (callback.isValid() && _session != null) {
-				log.warning("Added Facebook token key: " + callback.getAuthToken());
-				_session.putSessionData(FACEBOOK_TOKEN_KEY, callback.getAuthToken());
+		
+			try {
+				ResponseHandler<String> responseHandler = new BasicResponseHandler();
+				String responseBody = httpclient.execute(get, responseHandler);
+				
+				log.warning("Received Facebook JSON: " + responseBody);
+				
+				JsonElement element = new JsonParser().parse(responseBody);
+				if (element == null)
+					return;
+				
+				JsonObject object = element.getAsJsonObject();
+				if (object == null || !object.has("data"))
+					return;
+				
+				object = object.getAsJsonObject("data");
+				if (!object.has("user_id") || !object.has("is_valid"))
+					return;
+				
+				String user_id = object.get("user_id").getAsString();
+				boolean is_valid = object.get("is_valid").getAsBoolean();
+				log.warning("Facebook is_valid: " + is_valid + " " + user_id + " == " + callback.getUserId());
+				callback.setValid(is_valid && user_id.equals(callback.getUserId()));
+				
+				if (callback.isValid() && _session != null) {
+					log.warning("Added Facebook token key: " + callback.getAuthToken());
+					_session.putSessionData(FACEBOOK_TOKEN_KEY, callback.getAuthToken());
+				}
+			} finally {
+				get.releaseConnection();
 			}
 		}
 	}
