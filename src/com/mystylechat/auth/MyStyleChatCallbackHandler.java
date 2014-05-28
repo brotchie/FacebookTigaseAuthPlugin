@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 public class MyStyleChatCallbackHandler implements CallbackHandler, SessionAware {
+	/* Use your own Facebook App ID and Secret here (this secret is invalid) */
 	private final static String FACEBOOK_API_ID = "1387573978127294";
 	private final static String FACEBOOK_API_SECRET = "1e63d3e4f5a8cb97ef513989de52069c";
 	private static final Logger log = Logger.getLogger(MyStyleChatCallbackHandler.class.getName());
